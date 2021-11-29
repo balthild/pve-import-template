@@ -1,0 +1,88 @@
+aliases:
+  - &command_permit_root_login >-
+    if grep -E '^PermitRootLogin\s';
+    then sed -i -E 's/^(PermitRootLogin\s.*)+$/PermitRootLogin yes # \1/' /etc/ssh/sshd_config;
+    else printf "\nPermitRootLogin yes\n" >> /etc/ssh/sshd_config;
+    fi
+
+templates:
+
+  # Ubuntu 90xx
+
+  - vmid: 9000
+    name: ubuntu-16.04
+    url: http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    customize:
+      uploads:
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  - vmid: 9001
+    name: ubuntu-18.04
+    url: http://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img
+    customize:
+      uploads:
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  - vmid: 9002
+    name: ubuntu-20.04
+    url: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+    customize:
+      uploads:
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  # Debian 91xx
+
+  - vmid: 9100
+    name: debian-9
+    url: https://cloud.debian.org/images/openstack/current-9/debian-9-openstack-amd64.qcow2
+    customize:
+      uploads:
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  - vmid: 9101
+    name: debian-10
+    url: https://cloud.debian.org/images/openstack/current-10/debian-10-openstack-amd64.qcow2
+    customize:
+      uploads:
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  - vmid: 9102
+    name: debian-11
+    url: https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-genericcloud-amd64.qcow2
+    customize:
+      uploads:
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  # CentOS 92xx
+
+  - vmid: 92001
+    name: centos-7
+    url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2
+    customize:
+      uploads:
+        # 不知道为什么，如果用命令来删除 /etc/resolv.conf 的内容，
+        # 无论是 rm 再 touch，还是用 echo > 写入，都删不掉这个文件里面的内容。
+        # 但是像这样上传一个空文件去替换掉它就没问题。
+        # 也许是因为它有 chattr +i 之类的属性。但 virt-customize 执行命令时也没有报错，没法查具体原因。
+        # 虽然上传 /dev/null 看起来有点奇怪，但实际上它传过去就会变成普通的空文件。
+        - /dev/null:/etc/resolv.conf
+
+  - vmid: 9201
+    name: centos-8
+    url: http://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2
+    customize:
+      uploads:
+        # 同上
+        - /dev/null:/etc/resolv.conf
