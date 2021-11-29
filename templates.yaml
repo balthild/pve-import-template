@@ -67,7 +67,7 @@ templates:
 
   # CentOS 92xx
 
-  - vmid: 92001
+  - vmid: 9200
     name: centos-7
     url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2
     customize:
