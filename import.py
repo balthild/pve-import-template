@@ -6,6 +6,7 @@ import re
 import contextlib
 import urllib.request
 import subprocess
+import json
 
 
 def exit_missing_dep():
@@ -34,31 +35,33 @@ def run(cmd: str, **kwargs):
     subprocess.run(cmd, env=kwargs, shell=isinstance(cmd, str))
 
 
-def get_storage_type(name: str) -> str:
-    # References of the config file format:
-    # https://github.com/proxmox/pve-storage/blob/b4616e5/PVE/Storage/Plugin.pm#L418
-    # https://github.com/proxmox/pve-common/blob/3efa9ec/src/PVE/SectionConfig.pm#L291
-
+def check_storage(name: str) -> str:
+    # https://github.com/proxmox/pve-storage/blob/b4616e5/PVE/Storage/Plugin.pm#L424
     if name == 'local':
         return 'file'
 
-    with open('/etc/pve/storage.cfg') as file:
-        lines = file.readlines()
+    output = subprocess.check_output(['pvesh', 'get', '/storage', '--output-format=json-pretty'])
+    storages = json.loads(output)
 
-    # https://pve.proxmox.com/wiki/Storage
-    file_re = re.compile(rf'^(zfspool|dir|btrfs|nfs|cifs|glusterfs|cephfs):\s*({name})\s*$')
-    block_re = re.compile(rf'^(lvm|lvmthin|iscsi|iscsidirect|rbd|zfs):\s*({name})\s*$')
+    for storage in storages:
+        if storage['storage'] != name:
+            pass
 
-    for line in lines:
-        file_match = file_re.match(line)
-        if file_match is not None:
+        # https://pve.proxmox.com/wiki/Storage#_common_storage_properties
+        content = storage['content'].split(',')
+        if 'images' not in content:
+            raise Exception(f'PVE storage {name} does not support VM images.')
+
+        # https://pve.proxmox.com/wiki/Storage#_storage_types
+        typ = storage['type']
+        if typ in ['zfspool', 'dir', 'btrfs', 'nfs', 'cifs', 'glusterfs', 'cephfs']:
             return 'file'
-
-        block_match = block_re.match(line)
-        if block_match is not None:
+        elif typ in ['lvm', 'lvmthin', 'iscsi', 'iscsidirect', 'rbd', 'zfs']:
             return 'block'
+        else:
+            raise Exception(f'Unknown PVE storage type {typ}.')
 
-    raise Exception(f'PVE storage {name} not found.')
+    raise Exception(f'PVE storage {name} does not exist.')
 
 
 def vm_exists(vmid: int):
@@ -137,7 +140,7 @@ def main():
 
     try:
         storage = sys.argv[1]
-        storage_type = get_storage_type(storage)
+        storage_type = check_storage(storage)
     except IndexError:
         print('Usage: python3 import.py <storage-name>')
         sys.exit(1)
@@ -146,7 +149,6 @@ def main():
 
     with open('templates.yaml') as f:
         templates = yaml.load(f)
-        print(templates)
 
     for template in templates['templates']:
         import_template(template, storage, storage_type)
