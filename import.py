@@ -39,6 +39,9 @@ def get_storage_type(name: str) -> str:
     # https://github.com/proxmox/pve-storage/blob/b4616e5/PVE/Storage/Plugin.pm#L418
     # https://github.com/proxmox/pve-common/blob/3efa9ec/src/PVE/SectionConfig.pm#L291
 
+    if name == 'local':
+        return 'file'
+
     with open('/etc/pve/storage.cfg') as file:
         lines = file.readlines()
 
@@ -54,6 +57,8 @@ def get_storage_type(name: str) -> str:
         block_match = block_re.match(line)
         if block_match is not None:
             return 'block'
+
+    raise Exception(f'PVE storage {name} not found.')
 
 
 def vm_exists(vmid: int):
