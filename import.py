@@ -30,12 +30,31 @@ class DownloadProgressBar(tqdm.tqdm):
         self.update(b * bsize - self.n)
 
 
+class StorageInfo:
+    class Base:
+        def __init__(self, name) -> None:
+            self.name = name
+
+        def format_disk_name(vmid: int):
+            # https://pve.proxmox.com/pve-docs/chapter-pvesm.html
+            # Should not reach here
+            pass
+
+    class Dir(Base):
+        def format_disk_name(self, vmid: int):
+            return f'{vmid}/vm-{vmid}-disk-0.qcow2'
+
+    class Raw(Base):
+        def format_disk_name(self, vmid: int):
+            return f'vm-{vmid}-disk-0'
+
+
 def run(cmd: str, **kwargs):
     print(f'# {cmd}')
     subprocess.run(cmd, env=kwargs, shell=isinstance(cmd, str))
 
 
-def check_storage(name: str) -> str:
+def check_storage(name: str) -> StorageInfo.Base:
     # https://github.com/proxmox/pve-storage/blob/b4616e5/PVE/Storage/Plugin.pm#L424
     if name == 'local':
         return 'file'
@@ -52,14 +71,14 @@ def check_storage(name: str) -> str:
         if 'images' not in content:
             raise Exception(f'PVE storage {name} does not support VM images.')
 
-        # https://pve.proxmox.com/wiki/Storage#_storage_types
+        # https://pve.proxmox.com/pve-docs/chapter-pvesm.html
         typ = storage['type']
-        if typ in ['zfspool', 'dir', 'btrfs', 'nfs', 'cifs', 'glusterfs', 'cephfs']:
-            return 'file'
-        elif typ in ['lvm', 'lvmthin', 'iscsi', 'iscsidirect', 'rbd', 'zfs']:
-            return 'block'
+        if typ in ['dir', 'nfs', 'glusterfs']:
+            return StorageInfo.Dir(name)
+        elif typ in ['zfspool', 'lvm', 'lvmthin']:
+            return StorageInfo.Raw(name)
         else:
-            raise Exception(f'Unknown PVE storage type {typ}.')
+            raise Exception(f'Unsupported PVE storage type {typ}.')
 
     raise Exception(f'PVE storage {name} does not exist.')
 
@@ -83,7 +102,7 @@ def build_customize_args(customize: dict) -> list:
     return args
 
 
-def import_template(template: dict, storage: str, storage_type: str):
+def import_template(template: dict, storage: StorageInfo.Base):
     vmid, name, url = [template[k] for k in ('vmid', 'name', 'url')]
 
     if vm_exists(vmid):
@@ -109,15 +128,12 @@ def import_template(template: dict, storage: str, storage_type: str):
 
     # https://pve.proxmox.com/wiki/Cloud-Init_Support#_preparing_cloud_init_templates
     run(f'qm create {vmid} --name {name} --memory 512 --net0 virtio,bridge=vmbr0')
-    run(f'qm importdisk {vmid} {filename} {storage} -format qcow2')
+    run(f'qm importdisk {vmid} {filename} {storage.name} -format qcow2')
 
-    disk = {
-        'file': f'{vmid}/vm-{vmid}-disk-0.qcow2',
-        'block': f'vm-{vmid}-disk-0',
-    }[storage_type]
-    run(f'qm set {vmid} --scsihw virtio-scsi-pci --scsi0 {storage}:{disk}')
+    disk = storage.format_disk_name(vmid)
+    run(f'qm set {vmid} --scsihw virtio-scsi-pci --scsi0 {storage.name}:{disk}')
 
-    run(f'qm set {vmid} --ide2 {storage}:cloudinit')
+    run(f'qm set {vmid} --ide2 {storage.name}:cloudinit')
     run(f'qm set {vmid} --boot c --bootdisk scsi0')
 
     run(f'qm set {vmid} --serial0 socket')
@@ -139,8 +155,8 @@ def main():
         exit_missing_dep()
 
     try:
-        storage = sys.argv[1]
-        storage_type = check_storage(storage)
+        storage_name = sys.argv[1]
+        storage_info = check_storage(storage_name)
     except IndexError:
         print('Usage: python3 import.py <storage-name>')
         sys.exit(1)
@@ -151,7 +167,7 @@ def main():
         templates = yaml.load(f)
 
     for template in templates['templates']:
-        import_template(template, storage, storage_type)
+        import_template(template, storage_info)
 
 
 if __name__ == '__main__':
