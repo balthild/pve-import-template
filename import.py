@@ -56,8 +56,10 @@ def run(cmd: str, **kwargs):
 
 def check_storage(name: str) -> StorageInfo.Base:
     # https://github.com/proxmox/pve-storage/blob/b4616e5/PVE/Storage/Plugin.pm#L424
-    if name == 'local':
-        return 'file'
+    # No need to check if name == 'local' anymore.
+    # The `pvesh` API output will always contain local storage properly.
+    # if name == 'local':
+    #    return StorageInfo.Dir(name)
 
     output = subprocess.check_output(['pvesh', 'get', '/storage', '--output-format=json-pretty'])
     storages = json.loads(output)
