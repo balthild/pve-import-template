@@ -66,7 +66,7 @@ def check_storage(name: str) -> StorageInfo.Base:
 
     for storage in storages:
         if storage['storage'] != name:
-            pass
+            continue
 
         # https://pve.proxmox.com/wiki/Storage#_common_storage_properties
         content = storage['content'].split(',')
