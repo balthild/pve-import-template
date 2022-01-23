@@ -166,7 +166,7 @@ def main():
     os.makedirs("./cloud_img", exist_ok=True)
 
     with open('templates.yaml') as f:
-        templates = yaml.load(f)
+        templates = yaml.safe_load(f)
 
     for template in templates['templates']:
         import_template(template, storage_info)
