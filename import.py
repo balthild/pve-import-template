@@ -113,38 +113,48 @@ def import_template(template: dict, storage: StorageInfo.Base):
 
     print(f'Importing {vmid} ({name}) from {url}')
 
-    filename = f'./cloud_img/{name}.img'
+    filename_dl = f'./cloud_img/{name}.img.download'
+    filename_img = f'./cloud_img/{name}.img'
 
     # Delete and re-download the image
     with contextlib.suppress(FileNotFoundError):
-        os.remove(filename)
+        os.remove(filename_dl)
+        os.remove(filename_img)
 
     with DownloadProgressBar(unit='B', unit_scale=True, miniters=1) as t:
-        urllib.request.urlretrieve(url, filename=filename, reporthook=t.update_to)
+        urllib.request.urlretrieve(url, filename=filename_dl, reporthook=t.update_to)
+
+    unpack = template.get('unpack')
+    if unpack:
+        run(unpack.replace('{dl}', filename_dl).replace('{img}', filename_img))
+    else:
+        os.rename(filename_dl, filename_img)
 
     customize_args = build_customize_args(template.get('customize'))
     if len(customize_args) != 0:
-        customize_cmd = ['virt-customize', '-a', filename, *customize_args]
+        customize_cmd = ['virt-customize', '-a', filename_img, *customize_args]
         # https://libguestfs.org/guestfs-faq.1.html#permission-denied-when-running-libguestfs-as-root
         run(customize_cmd, LIBGUESTFS_BACKEND='direct')
 
     # https://pve.proxmox.com/wiki/Cloud-Init_Support#_preparing_cloud_init_templates
     run(f'qm create {vmid} --name {name} --memory 512 --net0 virtio,bridge=vmbr0')
-    run(f'qm importdisk {vmid} {filename} {storage.name} -format qcow2')
+    run(f'qm importdisk {vmid} {filename_img} {storage.name} -format qcow2')
 
     disk = storage.format_disk_name(vmid)
     run(f'qm set {vmid} --scsihw virtio-scsi-pci --scsi0 {storage.name}:{disk}')
-
-    run(f'qm set {vmid} --ide2 {storage.name}:cloudinit')
     run(f'qm set {vmid} --boot c --bootdisk scsi0')
 
     run(f'qm set {vmid} --serial0 socket')
-    run(f'qm set {vmid} --ciuser root')
+
+    if template['cloud_init']:
+        run(f'qm set {vmid} --ide2 {storage.name}:cloudinit')
+        run(f'qm set {vmid} --ciuser root')
 
     run(f'qm template {vmid}')
 
-    print(f'Deleting {filename}')
-    os.remove(filename)
+    print(f'Deleting {filename_img}')
+    os.remove(filename_dl)
+    os.remove(filename_img)
 
     print('Done')
     print()
@@ -159,8 +169,11 @@ def main():
     try:
         storage_name = sys.argv[1]
         storage_info = check_storage(storage_name)
+
+        vm_name = sys.argv.get(2)
     except IndexError:
-        print('Usage: python3 import.py <storage-name>')
+        print('Usage: python3 import.py <storage-name> [vm-name]')
+        print('If [vm-name] is specified, only the template with that name will be imported.')
         sys.exit(1)
 
     os.makedirs("./cloud_img", exist_ok=True)
@@ -169,7 +182,8 @@ def main():
         templates = yaml.safe_load(f)
 
     for template in templates['templates']:
-        import_template(template, storage_info)
+        if vm_name is None or vm_name == template['name']:
+            import_template(template, storage_info, picked)
 
 
 if __name__ == '__main__':

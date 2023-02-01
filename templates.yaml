@@ -12,6 +12,7 @@ templates:
   - vmid: 9000
     name: ubuntu-16.04
     url: https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    cloud_init: true
     customize:
       uploads:
         - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
@@ -21,6 +22,7 @@ templates:
   - vmid: 9001
     name: ubuntu-18.04
     url: https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img
+    cloud_init: true
     customize:
       uploads:
         - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
@@ -30,6 +32,7 @@ templates:
   - vmid: 9002
     name: ubuntu-20.04
     url: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+    cloud_init: true
     customize:
       uploads:
         - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
@@ -39,6 +42,7 @@ templates:
   - vmid: 9003
     name: ubuntu-22.04
     url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+    cloud_init: true
     customize:
       uploads:
         - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
@@ -50,6 +54,7 @@ templates:
   - vmid: 9100
     name: debian-9
     url: https://cloud.debian.org/images/openstack/current-9/debian-9-openstack-amd64.qcow2
+    cloud_init: true
     customize:
       uploads:
         - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
@@ -59,6 +64,7 @@ templates:
   - vmid: 9101
     name: debian-10
     url: https://cloud.debian.org/images/openstack/current-10/debian-10-openstack-amd64.qcow2
+    cloud_init: true
     customize:
       uploads:
         - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
@@ -68,6 +74,7 @@ templates:
   - vmid: 9102
     name: debian-11
     url: https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-genericcloud-amd64.qcow2
+    cloud_init: true
     customize:
       uploads:
         - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
@@ -79,6 +86,7 @@ templates:
   - vmid: 9200
     name: centos-7
     url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2
+    cloud_init: true
     customize:
       uploads:
         # 不知道为什么，如果用命令来删除 /etc/resolv.conf 的内容，
@@ -94,6 +102,35 @@ templates:
   - vmid: 9201
     name: centos-8
     url: http://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2
+    cloud_init: true
+    customize:
+      uploads:
+        # 同上
+        - /dev/null:/etc/resolv.conf
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  # RouterOS 93xx
+
+  - vmid: 9301
+    name: chr-6.48.6
+    url: https://download.mikrotik.com/routeros/6.48.6/chr-6.48.6.img.zip
+    unpack: unzip -p {dl} chr-6.48.6.img > {img}
+    cloud_init: false
+    customize:
+      uploads:
+        # 同上
+        - /dev/null:/etc/resolv.conf
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
+  - vmid: 9302
+    name: chr-7.7
+    url: https://download.mikrotik.com/routeros/7.7/chr-7.7.img.zip
+    unpack: unzip -p {dl} chr-7.7.img > {img}
+    cloud_init: false
     customize:
       uploads:
         # 同上
