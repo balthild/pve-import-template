@@ -118,23 +118,9 @@ templates:
     url: https://download.mikrotik.com/routeros/6.48.6/chr-6.48.6.img.zip
     unpack: unzip -p {dl} chr-6.48.6.img > {img}
     cloud_init: false
-    customize:
-      uploads:
-        # 同上
-        - /dev/null:/etc/resolv.conf
-        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
-      commands:
-        - *command_permit_root_login
 
   - vmid: 9302
     name: chr-7.7
     url: https://download.mikrotik.com/routeros/7.7/chr-7.7.img.zip
     unpack: unzip -p {dl} chr-7.7.img > {img}
     cloud_init: false
-    customize:
-      uploads:
-        # 同上
-        - /dev/null:/etc/resolv.conf
-        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
-      commands:
-        - *command_permit_root_login
