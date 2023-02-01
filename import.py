@@ -170,7 +170,7 @@ def main():
         storage_name = sys.argv[1]
         storage_info = check_storage(storage_name)
 
-        vm_name = sys.argv.get(2)
+        vm_name = sys.argv[2] if len(sys.argv) > 2 else None
     except IndexError:
         print('Usage: python3 import.py <storage-name> [vm-name]')
         print('If [vm-name] is specified, only the template with that name will be imported.')
