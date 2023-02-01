@@ -11,8 +11,7 @@ import json
 
 def exit_missing_dep():
     print('Some dependencies are missing.')
-    print('Please install them with the following command:')
-    print('# apt install python3-tqdm python3-yaml libguestfs-tools')
+    print('Please run setup.sh to install them.')
     sys.exit(2)
 
 
@@ -163,6 +162,7 @@ def import_template(template: dict, storage: StorageInfo.Base):
 def main():
     try:
         subprocess.call(['virt-customize', '--version'], stdout=subprocess.DEVNULL)
+        subprocess.call(['unzip'], stdout=subprocess.DEVNULL)
     except FileNotFoundError:
         exit_missing_dep()
 
@@ -183,7 +183,7 @@ def main():
 
     for template in templates['templates']:
         if vm_name is None or vm_name == template['name']:
-            import_template(template, storage_info, picked)
+            import_template(template, storage_info)
 
 
 if __name__ == '__main__':
