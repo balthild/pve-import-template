@@ -152,8 +152,9 @@ def import_template(template: dict, storage: StorageInfo.Base):
     run(f'qm template {vmid}')
 
     print(f'Deleting {filename_img}')
-    os.remove(filename_dl)
-    os.remove(filename_img)
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(filename_dl)
+        os.remove(filename_img)
 
     print('Done')
     print()
