@@ -81,6 +81,16 @@ templates:
       commands:
         - *command_permit_root_login
 
+  - vmid: 9103
+    name: debian-12
+    url: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+    cloud_init: true
+    customize:
+      uploads:
+        - ./uploads/ssh.cfg:/etc/cloud/cloud.cfg.d/50_nerocloud_ssh.cfg
+      commands:
+        - *command_permit_root_login
+
   # CentOS 92xx
 
   - vmid: 9200
